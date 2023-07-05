@@ -1,0 +1,120 @@
+USE ROLE SYSADMIN;
+
+
+---DATABASES
+CREATE OR REPLACE DATABASE OBJECTS_DEMO_DB;
+--USE OBJECTS_DEMO_DB;
+--DROP DATABASE OBJECTS_DEMO_DB;
+
+
+---WAREHOUSES
+CREATE OR REPLACE WAREHOUSE DEMO_WH_XS WITH WAREHOUSE_SIZE = 'XSMALL' 
+WAREHOUSE_TYPE = 'STANDARD' -- STANDARD | SNOWPARK-OPTIMIZED
+AUTO_SUSPEND = 600 
+AUTO_RESUME = TRUE 
+MIN_CLUSTER_COUNT = 1 
+MAX_CLUSTER_COUNT = 2 
+SCALING_POLICY = 'STANDARD'; 
+
+USE WAREHOUSE DEMO_WH_XS;
+--DROP WAREHOUSE DEMO_WH_XS;
+
+
+---SCHEMA
+CREATE OR REPLACE SCHEMA OBJECTS_DEMO_SCHEMA;
+USE SCHEMA OBJECTS_DEMO_SCHEMA;
+-- DROP DATABASE OBJECTS_DEMO_DB;
+
+
+--Temporary Table: 
+create or replace temporary table temp_table_demo(name varchar,age int,dept varchar);
+insert into temp_table_demo values ('Alex',25,'Tech'), ('Angela',32,'Fin'), ('Oscar',31,'Fin'),('Toby',36,'HR'),('Jim',31,'Sales'),('Kevin',30,'Fin');
+
+SELECT * FROM temp_table_demo;
+
+
+--Transient Table: 
+create transient table transient_table_demo(name varchar,age int,dept varchar); 
+insert into transient_table_demo values ('Alex',25,'Tech'), ('Angela',32,'Fin'), ('Oscar',31,'Fin'),('Toby',36,'HR'),('Jim',31,'Sales'),('Kevin',30,'Fin');
+
+SELECT * FROM transient_table_demo;
+
+SELECT * FROM OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA.TRANSIENT_TABLE_DEMO;
+
+
+--Permanant Table: 
+create or replace table table_demo( name varchar,age int,dept varchar); 
+insert into table_demo values ('Alex',25,'Tech'), ('Angela',32,'Fin'), ('Oscar',31,'Fin'),('Toby',36,'HR'),('Jim',31,'Sales'),('Kevin',30,'Fin');
+
+SELECT * FROM table_demo;
+
+--drop table transient_table_demo;
+--drop table table_demo;
+
+--Views 
+
+--Standard/non-materialised view
+CREATE or replace VIEW OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA.Fin_view 
+    COMMENT = 'original finance team as a view' AS select name, age from table_demo where dept='Fin';
+
+select * from Fin_view;
+
+--Materialised View Syntax: 
+create or replace materialized view OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA.Sales_mview
+comment='Test view for materialized view' as select name from table_demo where dept='Sales';
+
+
+select * from Sales_mview;
+
+-- refreshing views
+SELECT * FROM table_demo;
+insert into table_demo values
+('Harsha',31,'Sales'),
+('Sai',31,'Fin');
+delete from table_demo where name = 'Harsha';
+
+--Secure View Syntax: 
+create or replace secure view age_sview
+comment = 'Test view for age' 
+as select name, dept from table_demo where age>30;
+
+select * from age_sview;
+ 
+--ddl
+select get_ddl('view','age_sview');
+SHOW VIEWS LIKE 'age_sview';
+ 
+--testing secure view
+use role securityadmin;
+
+    create or replace role tester;
+    grant role tester to role SYSADMIN;
+    
+use role SYSADMIN;
+    grant usage on database OBJECTS_DEMO_DB to role tester;
+    grant usage on schema OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA to role tester;
+    grant select on view OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA.AGE_SVIEW  to role tester; 
+    
+    grant usage on warehouse DEMO_WH_XS to role tester;
+    grant operate on warehouse DEMO_WH_XS to role tester;
+    
+use role tester;
+
+    use objects_demo_db;
+    use schema OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA;
+    select * from OBJECTS_DEMO_DB.OBJECTS_DEMO_SCHEMA.age_sview;
+    
+    SHOW VIEWS LIKE 'age_sview';
+    
+    
+-- limitations of views
+
+--- The definition for a view cannot be updated 
+-- (i.e. you cannot use ALTER VIEW or ALTER MATERIALIZED VIEW to change the definition of a view). 
+-- To change a view definition, you must recreate the view with the new definition.
+
+-- Changes to a table are not automatically propagated to views created on that table. 
+-- For example, if you drop a column in a table, the views on that table might become invalid.
+
+-- Views are read-only (i.e. you cannot execute DML commands directly on a view). 
+-- However, you can use a view in a subquery within a DML statement that updates the underlying base table.

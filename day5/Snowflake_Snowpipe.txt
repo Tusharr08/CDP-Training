@@ -1,0 +1,123 @@
+CREATE OR REPLACE DATABASE DEMO;
+CREATE OR REPLACE SCHEMA SNOWPIPE_DEMO;
+
+ 
+
+/*Snowpipe is used for continuous loading from a location to snowflake table.
+The extermal locations are usually in AWS, Azure or GCP.
+
+ 
+
+creating stage is the best practice because if the external storage has key/token ids
+to protect the data, then we mention the token ids/keys in the stage creation
+and hence the keys are protected from outside or visible use.*/
+
+ 
+
+------Pre-requisites
+--an AWS free trial account has been setup
+--an IAM policy and role for snowflake to the S3 bucket has been created
+
+ 
+
+--Create integration object with AWS storage -----
+CREATE STORAGE INTEGRATION SNOWPIPE_DEMO_STORAGEINTEGR
+  TYPE = EXTERNAL_STAGE
+  STORAGE_PROVIDER = 'S3'
+  ENABLED = TRUE //can use this integration to create stages
+  STORAGE_AWS_ROLE_ARN = 'arn:aws:iam::924675517163:role/snowpipe-demo-role'
+  STORAGE_ALLOWED_LOCATIONS = ('s3://demo-snowpipe1/');
+
+
+ 
+
+DESC INTEGRATION SNOWPIPE_DEMO_STORAGEINTEGR;
+
+ 
+
+--Create named stage----------
+CREATE OR REPLACE STAGE DEMO_S3_STAGE
+URL = 's3://demo-snowpipe1/'
+//CREDENTIALS = '...'
+STORAGE_INTEGRATION = SNOWPIPE_DEMO_STORAGEINTEGR;
+
+ 
+
+SHOW STAGES;
+LIST @DEMO_S3_STAGE;
+
+ 
+
+--create table in snowflake---
+CREATE OR REPLACE TABLE PEOPLE_DATA1(ID NUMBER(10,0), FIRST_NAME VARCHAR2(100), LAST_NAME VARCHAR2(100), COUNTRY VARCHAR2(100));
+
+ 
+
+SELECT * FROM PEOPLE_DATA1;
+
+ 
+
+CREATE OR REPLACE TABLE PEOPLE_DATA2(ID NUMBER(10,0), FULL_NAME VARCHAR2(100), COUNTRY VARCHAR2(100));
+
+ 
+
+SELECT * FROM PEOPLE_DATA2;
+
+ 
+
+--Create snowpipe---------
+CREATE OR REPLACE PIPE S3_SNOWFLAKE_PIPE1
+AUTO_INGEST=TRUE
+AS
+COPY INTO PEOPLE_DATA1
+FROM @DEMO_S3_STAGE
+FILE_FORMAT = (TYPE='CSV', SKIP_HEADER = 1);
+
+ 
+
+SHOW PIPES;
+DESCRIBE PIPE S3_SNOWFLAKE_PIPE;
+
+ 
+
+/*For auto ingestion, a notification event is mandatory to be created in aws S3 bucket*/
+
+ 
+
+--Show snowpipe run history---------
+select *
+from table(information_schema.copy_history(TABLE_NAME=>'PEOPLE_DATA1', START_TIME=> DATEADD(hours, -1, CURRENT_TIMESTAMP())));
+
+ 
+
+--show snowpipe error records-------
+select * from table(validate_pipe_load(pipe_name=>'DEMO.SNOWPIPE_DEMO.S3_SNOWFLAKE_PIPE1',
+start_time=>DATEADD(hours, -1, CURRENT_TIMESTAMP())));
+
+ 
+
+--Refresh snowpipe--------
+alter pipe s3_snowflake_pipe1 refresh;
+
+ 
+
+--Snowpipe with On-Error options---------
+CREATE OR REPLACE PIPE S3_SNOWFLAKE_PIPE2
+AUTO_INGEST=TRUE
+AS
+COPY INTO PEOPLE_DATA2
+FROM 
+(select S.$1, S.$2||S.$3 FULL_NAME, S.$4 FROM @DEMO_S3_STAGE S)
+FILE_FORMAT = (TYPE='CSV'),
+ON_ERROR = 'CONTINUE';
+-- ON_ERROR = 'SKIP_FILE';
+-- ON_ERROR = 'ABORT_STATEMENT'; // not supported in snowpipe
+
+ 
+
+--Snowpipe other commands------------
+ALTER PIPE S3_SNOWFLAKE_PIPE1 SET PIPE_EXECUTION_PAUSED=FALSE;
+
+ 
+
+SELECT SYSTEM$PIPE_STATUS('S3_SNOWFLAKE_PIPE1');

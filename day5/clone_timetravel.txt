@@ -1,0 +1,35 @@
+create or replace temporary table tem(id int);
+create or replace table tem1 clone tem;
+drop table tem1;
+create table time_tra(id int,department varchar(50));
+insert into time_tra(id,department) values(1,'marketing');
+insert into time_tra(id,department) values(2,'hr');
+insert into time_tra(id,department) values(3,'operations');
+update time_tra set department='it' where department='marketing';
+
+
+
+create or replace table original_table(id int, o_name varchar(50));
+insert into original_table(id,o_name) values(1,'sarthak');
+insert into original_table(id,o_name) values(2,'ramesh');
+insert into original_table(id,o_name) values(3,'ramya');
+select * from original_table;
+create or replace table cloned_table clone original_table;
+select * from cloned_table;
+--changes in original table will not reflect in cloned table
+
+update original_table set o_name='roopesh' where o_name='sarthak';
+select * from original_table;
+drop database clone_db;
+create database clone_db clone players;
+--cloning database will also clone schemas and tables in database
+select * from time_tra before (offset=>-60*1);
+select * from time_tra before (statement=>'01ad27fb-3200-c541-0004-c2da00019126');
+select * from time_tra at(timestamp=>'Fri, 23 Jun 2023 01:02:00 -0800'::timestamp_tz);
+--UNDROP
+drop database clone_db;
+show parameters;
+undrop database clone_db;
+
+
+create database clone_db;

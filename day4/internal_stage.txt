@@ -1,0 +1,18 @@
+create database players;
+create schema sys;
+call sar();
+create or replace table person(id int,name varchar(50),age int,email varchar(50));
+select * from person;
+drop procedure output1();
+drop table person;
+create or replace file format mycsvformat 
+type=CSV
+FIELD_DELIMITER='|'
+SKIP_HEADER=1;
+copy into person from @~/person.csv.gz
+file_format='mycsvformat'
+VALIDATION_MODE=RETURN_ALL_ERRORS;
+copy into person from @~/person.csv.gz
+file_format='mycsvformat';
+select * from person;
+copy into @~ from person;

@@ -1,0 +1,5 @@
+name   | age | email                  | address.street | address.city | address.state | address.country | interests                            | isStudent
+-------|-----|------------------------|----------------|--------------|---------------|------------------|--------------------------------------|----------
+John   | 30  | john@example.com       | 123 Main St    | New York     | NY            | USA              | ["programming", "reading", "traveling"] | false
+Jane   | 25  | jane@example.com       | 456 Elm St     | Los Angeles  | CA            | USA              | ["photography", "hiking", "cooking"]    | true
+Michael| 45  | michael@example.com    | 789 Oak St     | Chicago      | IL            | USA              | ["music", "sports", "gardening"]        | false

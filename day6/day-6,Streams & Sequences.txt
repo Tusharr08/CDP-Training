@@ -1,0 +1,51 @@
+-----Streams & Sequence--------
+create or replace table stream_demo(id number(10,0), name varchar2(100), age number(10,0));
+create or replace table stream_final(id number(10,0), name varchar2(100), age number(10,0));
+insert into stream_demo values(1,'Rita',23);
+update stream_demo set age=25 where id=1;
+insert into stream_demo values(2,'Yash',24);
+select * from stream_demo;
+select * from stream_final;
+
+CREATE or replace STREAM mystream ON TABLE stream_demo;
+
+select * from mystream;
+
+insert into stream_final
+select id,name,age from mystream;
+
+merge into stream_final f
+using mystream s
+on s.id=f.id
+when matched
+and s.metadata$action='INSERT'
+and s.metadata$isupdate
+then update set f.age=s.age
+when matched
+and s.metadata$action='DELETE'
+and s.metadata$isupdate='FALSE'
+then delete
+when not matched
+then insert(id,name,age)
+values(s.id,s.name,s.age);
+
+-------sequence-----------
+create schema seq_demo;
+
+CREATE OR REPLACE SEQUENCE seq_01 START = 1 INCREMENT = 1;
+SELECT seq_01.nextval;
+
+create or replace table tab1(id number(10,0) default seq_01.nextval, name varchar2(100));
+insert into tab1(name) values('rima');
+select * from tab1;
+
+
+ALTER SEQUENCE seq_01 RENAME TO seq_02;
+ALTER SEQUENCE seq_01 SET INCREMENT = 1 ;
+ALTER SEQUENCE seq_02 SET COMMENT = '<string_literal>'
+ALTER SEQUENCE seq_02 UNSET COMMENT
+
+DROP SEQUENCe seq_02;
+SHOW SEQUENCES LIKE 'SEQ%' ;
+DESCRIBE SEQUENCE seq_01;
+

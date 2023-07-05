@@ -1,0 +1,158 @@
+------DATA MASKING COLUMN LEVEL----------
+
+
+USE ROLE SYSADMIN;
+create or replace WAREHOUSE COMPUTE_WH WITH WAREHOUSE_SIZE = 'XSMALL' 
+WAREHOUSE_TYPE = 'STANDARD' AUTO_SUSPEND = 600 AUTO_RESUME = TRUE MIN_CLUSTER_COUNT = 1 MAX_CLUSTER_COUNT = 2 SCALING_POLICY = 'STANDARD';
+--DROP WAREHOUSE COMPUTE_WH
+
+// DATA MASKING --COLUMN
+-- Execute these queries 
+USE ROLE SYSADMIN;
+
+create or replace database claims;
+create or replace schema pharmacy;
+--drop database claims;
+--drop schema pharmacy;
+--drop table patient
+
+
+USE ROLE SECURITYADMIN;
+
+--claims.pharmacy(namespace=database.schema)
+GRANT CREATE MASKING POLICY ON SCHEMA claims.pharmacy TO ROLE SYSADMIN;
+
+create or replace role sandbox;
+
+GRANT ROLE sandbox TO ROLE SYSADMIN;
+
+create or replace user developer password='abc123' must_change_password = false;
+--drop user developer
+--create or replace user developer password='abc123' default_secondary_roles = ('ALL') must_change_password = false;
+grant role sandbox to user developer;
+
+-- Grant usage access on warehouse & database.
+USE ROLE SYSADMIN;
+GRANT USAGE ON WAREHOUSE COMPUTE_WH TO ROLE SANDBOX;
+GRANT OPERATE ON WAREHOUSE COMPUTE_WH TO ROLE SANDBOX;
+
+GRANT USAGE ON DATABASE claims TO ROLE SANDBOX;
+GRANT USAGE ON SCHEMA claims.pharmacy TO ROLE SANDBOX;
+
+
+
+
+
+--Create masking policy.
+USE ROLE SYSADMIN;
+
+USE CLAIMS;
+USE SCHEMA CLAIMS.PHARMACY;
+
+CREATE OR REPLACE MASKING POLICY claims.pharmacy.patient_MASK AS (VAL STRING) RETURNS STRING ->
+      CASE
+        WHEN CURRENT_ROLE()NOT IN ('SYSADMIN') THEN 
+            CASE WHEN VAL='F70' THEN '********' ELSE VAL
+            END
+        ELSE VAL
+      END;
+
+    --Create sample table to apply masking
+create or replace table patient
+    (
+    Name varchar,
+    age integer,
+    icdcode varchar MASKING POLICY claims.pharmacy.patient_MASK,--applying masking policy
+    zip_code varchar,
+    city varchar,
+    provider_name varchar
+    );
+    
+insert into patient
+    values('john','12','E910','49715','Michigan','CVS Health Corp'),
+    ('Simon','25','F00','43009','Ohio','McKesson Corp'),
+    ('Mike','58','W13','61727','Illinois','Cigna Corp'),
+    ('Andrew','32','J09','39425','Mississipp','UnitedHealth Group Inc'),
+    ('Brian','40','H03','39425','Mississipp','UnitedHealth Group Inc'),
+    ('David','37','F70','63013','Beaufort','UnitedHealth Group Inc'),
+    ('Dom','23','H60','63013','Beaufort','UnitedHealth Group Inc'),
+    ('Jack','30','H30','46030','Indiana','Cigna Corp'),
+    ('Doli','35','E65','64722','Amoret','Cigna Corp'),
+    ('Padma','50','O81.0','64722','Amoret','Cigna Corp');
+
+SELECT * FROM CLAIMS.PHARMACY.patient;
+    
+GRANT SELECT ON claims.pharmacy.patient TO ROLE SANDBOX;
+
+-- go back to developer user check the data
+
+USE ROLE ACCOUNTADMIN;
+SELECT * FROM CLAIMS.PHARMACY.patient;
+
+SHOW MASKING POLICIES;
+DESC MASKING POLICY patient_MASK;
+
+
+
+----------------ROW ACCESS POLICY---------
+
+// ROW LEVEL ACCESS
+
+use role sysadmin;
+
+create or replace database claims;
+create or replace schema pharmacy;
+
+create or replace table patient
+(
+Name varchar,
+age integer,
+icdcode varchar,
+zip_code varchar,
+city varchar,
+provider_name varchar
+
+);
+
+insert into patient
+values('john','12','E910','49715','Michigan','CVS Health Corp'),
+('Simon','25','F00','43009','Ohio','McKesson Corp'),
+('Mike','58','W13','61727','Illinois','Cigna Corp'),
+('Andrew','32','J09','39425','Mississipp','UnitedHealth Group Inc'),
+('Brian','40','H03','39425','Mississipp','UnitedHealth Group Inc'),
+('David','37','F70','63013','Beaufort','UnitedHealth Group Inc'),
+('Dom','23','H60','63013','Beaufort','UnitedHealth Group Inc'),
+('Jack','30','H30','46030','Indiana','Cigna Corp'),
+('Doli','35','E65','64722','Amoret','Cigna Corp'),
+('Padma','50','O81.0','64722','Amoret','Cigna Corp');
+
+F00-- Dementia in Alzheimer disease
+W13---Fall from, out of or through building or structure
+J09---Influenza and pneumonia
+H03--- Disorders of eyelid in diseases classified elsewhere
+F70--- Mental retardation
+H60--- Diseases of external ear
+H30--- Disorders of choroid and retina
+E65-- Obesity and other hyperalimentation
+O81.0-- Low forceps delivery
+
+/*create or replace row access policy claims.pharmacy.patient_policy as (icdcode varchar) returns boolean ->
+           CASE WHEN icdcode='F70' THEN FALSE ELSE TRUE END;*/
+
+create or replace row access policy claims.pharmacy.patient_policy as (icdcode varchar) returns boolean ->
+CASE
+        WHEN CURRENT_ROLE()NOT IN ('SYSADMIN') THEN 
+            CASE WHEN icdcode='F70' THEN FALSE ELSE TRUE
+            END
+        ELSE TRUE
+END;
+show  row access policies         
+Desc row access policy claims.pharmacy.patient_policy
+           
+alter table claims.pharmacy.patient add row access policy patient_policy on (icdcode);
+
+--alter table claims.pharmacy.patient drop row access policy patient_policy; 
+select * from claims.pharmacy.patient;
+
+use role accountadmin;
+select * from claims.pharmacy.patient;----

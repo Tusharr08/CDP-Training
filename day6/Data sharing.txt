@@ -1,0 +1,41 @@
+
+FIRST ACCOUNT
+-----------------------------------------------------------------------------
+create database sales;
+
+create table customer as
+select * from SNOWFLAKE_SAMPLE_DATA.TPCH_SF1000.CUSTOMER LIMIT 100;
+
+create share demoshare_1;
+
+grant usage on database sales to share demoshare_1;
+
+grant usage on schema sales.public to share demoshare_1;
+grant select on table sales.public.customer to share demoshare_1;
+
+grant all on table sales.public.customer to share demoshare_1;
+
+show grants to share demoshare_1;
+
+alter share demoshare_1 add accounts= bo21264;
+--go to another account
+
+show shares;
+
+--restart
+--drop database sales;
+--drop share demoshare_1;
+
+select * from customer;
+
+=============================================================================
+SECOND ACCOUNT
+-----------------------------------------------------------------------------
+
+--drop database sales_share;
+create database sales_share from share YLFASQO.TN53318.DEMOSHARE_1;
+
+grant imported privileges on database sales_share to SYSADMIN;
+use role sysadmin;
+select * from customer;
+

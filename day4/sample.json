@@ -1,0 +1,67 @@
+[
+  {
+    "name": "John Doe",
+    "age": 30,
+    "email": "johndoe@example.com",
+    "address": {
+      "street": "123 Main St",
+      "city": "New York",
+      "state": "NY",
+      "country": "USA"
+    },
+    "interests": ["programming", "reading", "traveling"],
+    "isStudent": false
+  },
+  {
+    "name": "Jane Smith",
+    "age": 25,
+    "email": "janesmith@example.com",
+    "address": {
+      "street": "456 Elm St",
+      "city": "Los Angeles",
+      "state": "CA",
+      "country": "USA"
+    },
+    "interests": ["photography", "hiking", "cooking"],
+    "isStudent": true
+  },
+  {
+    "name": "Michael Johnson",
+    "age": 45,
+    "email": "michaeljohnson@example.com",
+    "address": {
+      "street": "789 Oak St",
+      "city": "Chicago",
+      "state": "IL",
+      "country": "USA"
+    },
+    "interests": ["music", "sports", "gardening"],
+    "isStudent": false
+  },
+  {
+    "name": "Emily Davis",
+    "age": 35,
+    "email": "emilydavis@example.com",
+    "address": {
+      "street": "321 Pine St",
+      "city": "San Francisco",
+      "state": "CA",
+      "country": "USA"
+    },
+    "interests": ["painting", "yoga", "volunteering"],
+    "isStudent": false
+  },
+  {
+    "name": "Daniel Wilson",
+    "age": 28,
+    "email": "danielwilson@example.com",
+    "address": {
+      "street": "987 Maple St",
+      "city": "Seattle",
+      "state": "WA",
+      "country": "USA"
+    },
+    "interests": ["coding", "gaming", "movies"],
+    "isStudent": true
+  }
+]

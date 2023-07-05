@@ -1,0 +1,82 @@
+---------Tasks & DAG--------
+create or replace schema tasks_streams;
+
+/*tasks are mainly to schedule a sql statement. Task can have single statement
+and not multiple statements*/
+
+create table tab2(dates timestamp_ltz);
+select * from tab2;
+
+CREATE or replace TASK mytask_minute
+  -- WAREHOUSE = COMPUTE_WH
+  SCHEDULE = '1 MINUTE'
+AS
+INSERT INTO tab2 VALUES(current_timestamp);
+
+describe task mytask_minute;
+
+execute task mytask_minute;
+
+/*all tasks are by default in suspended state*/
+describe task t3;
+alter task mytask_minute suspend;
+
+SELECT * FROM TAB1;
+
+--Cron example--
+CREATE TASK t1
+  SCHEDULE = 'USING CRON 30 12 L 3 * UTC'
+  WAREHOUSE = mywh
+AS
+SELECT CURRENT_TIMESTAMP;
+/*
+# __________ minute (0-59)
+# | ________ hour (0-23)
+# | | ______ day of month (1-31, or L)
+# | | | ____ month (1-12, JAN-DEC)
+# | | | | _ day of week (0-6, SUN-SAT, or L)
+# | | | | |
+# | | | | |
+  * * * * *
+*/
+
+create or replace task task1
+SCHEDULE = '1 MINUTE'
+//  WAREHOUSE = mywh
+AS
+SELECT CURRENT_TIMESTAMP;
+
+alter task task3 suspend;
+describe task task3;
+
+[   "DEMO.TASKS_STREAMS.TASK1",   "DEMO.TASKS_STREAMS.TASK2" ]
+
+create or replace task task2
+-- SCHEDULE = '1 MINUTE'
+  -- WAREHOUSE = mywh
+AFTER task1
+AS
+SELECT CURRENT_TIMESTAMP;
+
+
+create or replace task task3
+AS
+SELECT CURRENT_TIMESTAMP;
+
+alter task task3 add after task2;
+
+select SYSTEM$TASK_DEPENDENTS_ENABLE( 'task1' );
+
+select *
+  from table(information_schema.task_history())
+  order by scheduled_time;
+
+select *
+  from table(information_schema.task_history(
+    scheduled_time_range_start=>dateadd('hour',-1,current_timestamp()),
+    result_limit => 10,
+    task_name=>'task1'));
+
+select *
+  from table(information_schema.complete_task_graphs())
+  order by scheduled_time;

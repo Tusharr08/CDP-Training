@@ -1,0 +1,107 @@
+//user
+create or replace user Demo_User;
+
+
+//role
+create or replace role demo_role;
+
+//database
+create or replace database demo_db;
+
+
+//schemas
+create or replace schema demo_schema;
+
+
+//WAREHOUSE
+create or replace warehouse wh_l
+WAREHOUSE_SIZE = SMALL
+WAREHOUSE_TYPE = 'STANDARD' AUTO_SUSPEND = 600 AUTO_RESUME = TRUE MIN_CLUSTER_COUNT = 1 MAX_CLUSTER_COUNT = 2 SCALING_POLICY = 'STANDARD';
+
+
+
+//tables
+create or replace temporary table demo_temp ( name varchar, age int, score int );
+
+insert into demo_temp values ('ABC','22',40);
+insert into demo_temp values ('XYZ','22',50);
+
+select * from demo_temp;
+
+create or replace transient table demo_tran (name varchar, age int, dept varchar);
+
+insert into demo_tran values ('ABC','32','HR');
+insert into demo_tran values ('XYZ','22','Sales');
+
+select * from demo_tran;
+
+create or replace table demo_perm (name varchar, age int, dept varchar );
+
+insert into demo_perm values ('ABC',32,'sales');
+insert into demo_perm values ('XYZ',22,'marketing');
+
+select * from demo_perm;
+
+
+
+--Stages
+//User stage:
+--list Returns a list of files that have been staged 
+list @~;
+ 
+//Table stage
+create or replace table tablestage_ex(id int);
+list @%tablestage_ex;
+ 
+//Named stage:
+create or replace stage int_stage;
+list @int_stage;
+show stages;
+
+
+
+--File Format
+//CSV
+Create or replace FILE FORMAT CSV_FORMAT
+COMPRESSION = 'AUTO'FIELD_DELIMITER='|'
+RECORD_DELIMITER='\n'SKIP_HEADER=0;
+
+ drop file format CSV_FORMAT
+//create database demo_db;
+//create schema demo_schema;
+ 
+CREATE or replace FILE FORMAT "DEMO_DB"."DEMO_SCHEMA".CSV_FMT TYPE = 'CSV' COMPRESSION = 'AUTO' FIELD_DELIMITER = ','
+RECORD_DELIMITER = '\n' SKIP_HEADER = 0 FIELD_OPTIONALLY_ENCLOSED_BY = 'NONE' TRIM_SPACE = FALSE
+ERROR_ON_COLUMN_COUNT_MISMATCH = TRUE ESCAPE = 'NONE'
+ESCAPE_UNENCLOSED_FIELD = '\134' DATE_FORMAT = 'AUTO' TIMESTAMP_FORMAT = 'AUTO' NULL_IF = ('\\N');
+ 
+//JSON
+create or replace file format json_format
+type = json;
+-- drop file format json_format;
+
+
+ 
+//External Stage
+CREATE or replace STAGE ext_stage URL='s3://demowebnar1/'
+CREDENTIALS = (AWS_KEY_ID='*********'
+AWS_SECRET_KEY='***************')
+
+
+//STORAGE integration
+CREATE STORAGE INTEGRATION DEMO_INTEGRATION_1
+TYPE = EXTERNAL_STAGE
+STORAGE_PROVIDER = S3
+ENABLED = TRUE
+STORAGE_AWS_ROLE_ARN ='************'
+storage_ALLOWED_LOCATIONS = ('S3 BUCKET LOCATION');
+
+//lists all the storage integrations available in your Snowflake account. 
+//It provides information such as the name of the integration, the type of integration (e.g., S3, Azure Blob Storage), and the configuration details.
+show storage integrations;
+
+//To view the details of a specific storage integration
+describe storage integration DEMO_INTEGRATION_1;
+
+//Only the ACCOUNTADMIN role has this privilege by default. The privilege can be granted to additional roles as needed.
+//Recreating a storage integration (using CREATE OR REPLACE STORAGE INTEGRATION) breaks the association between the storage integration and any stage that references it. This is because a stage links to a storage integration using a hidden ID rather than the name of the storage integration
